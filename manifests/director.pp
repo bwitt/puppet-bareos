@@ -91,6 +91,16 @@ class bareos::director (
     tag     => ['bareos', 'bareos_director'],
   }
 
+  # Shipped by the director package, so the purge of the bareos config dir must leave it alone
+  file { "${bareos::config_dir}/bareos-dir-export":
+    ensure  => directory,
+    mode    => $bareos::file_dir_mode,
+    owner   => $bareos::file_owner,
+    group   => $bareos::file_group,
+    require => Package[$package_name],
+    tag     => ['bareos', 'bareos_director'],
+  }
+
   $managed_dirs.each |$managed_dir| {
     file { "${config_dir}/${managed_dir}":
       ensure  => directory,

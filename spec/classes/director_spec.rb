@@ -33,6 +33,10 @@ describe 'bareos::director' do
             .with_db_name('test')
         end
       end
+
+      it 'keeps the export dir out of the config dir purge' do
+        is_expected.to contain_file('/etc/bareos/bareos-dir-export').with_ensure('directory')
+      end
     end
   end
 end
