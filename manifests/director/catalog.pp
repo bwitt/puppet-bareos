@@ -192,7 +192,20 @@ define bareos::director::catalog (
     ],
     tag     => ['bareos', 'bareos_director'],
   }
-  if $bareos::manage_database {
-    File["${bareos::director::config_dir}/${_resource_dir}/${name}.conf"] ~> Exec['bareos director init catalog']
+  if $bareos::manage_database and $ensure == 'present' {
+    # The scripts need the postgres superuser, which can't read the config, so pass the catalog settings
+    $_db_env = { 'db_name' => $db_name, 'db_user' => $db_user, 'db_password' => $db_password }
+    .filter |$key, $value| { $value =~ NotUndef }
+    .map |$key, $value| { "${key}=${value}" }
+
+    exec { "bareos director init catalog ${name}":
+      command     => '/usr/lib/bareos/scripts/create_bareos_database && /usr/lib/bareos/scripts/make_bareos_tables && /usr/lib/bareos/scripts/grant_bareos_privileges',
+      environment => $_db_env,
+      user        => 'postgres',
+      refreshonly => true,
+      subscribe   => File["${bareos::director::config_dir}/${_resource_dir}/${name}.conf"],
+      notify      => Service[$bareos::director::service_name],
+      tag         => ['bareos', 'bareos_director'],
+    }
   }
 }

@@ -33,6 +33,23 @@ describe 'bareos::director::catalog' do
             .with_content(%r{Name = "name"$})
             .with_tag(%w[bareos bareos_director])
         end
+
+        it 'initializes the catalog database as the postgres user' do
+          is_expected.to contain_exec('bareos director init catalog name')
+            .with_user('postgres')
+            .with_environment(['db_name=catalogdb'])
+            .that_subscribes_to("File[#{filename}]")
+            .that_notifies('Service[bareos-dir]')
+        end
+
+        context 'with a database user and password' do
+          let(:params) { super().merge('db_user' => 'bareos', 'db_password' => 'secret') }
+
+          it do
+            is_expected.to contain_exec('bareos director init catalog name')
+              .with_environment(['db_name=catalogdb', 'db_user=bareos', 'db_password=secret'])
+          end
+        end
       end
 
       context 'with all params set' do
@@ -67,14 +84,17 @@ describe 'bareos::director::catalog' do
           is_expected.to contain_file(filename)
             .with_content(content)
             .that_notifies('Service[bareos-dir]')
-            .that_notifies('Exec[bareos director init catalog]')
+            .that_notifies('Exec[bareos director init catalog name]')
         end
       end
 
       context 'with ensure absent' do
         let(:params) { { 'ensure' => 'absent' } }
 
-        it { is_expected.to contain_file(filename).with_ensure('absent') }
+        it do
+          is_expected.to contain_file(filename).with_ensure('absent')
+          is_expected.not_to contain_exec('bareos director init catalog name')
+        end
       end
     end
   end
