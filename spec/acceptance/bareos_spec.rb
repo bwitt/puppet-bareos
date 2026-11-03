@@ -7,22 +7,7 @@ describe 'bareos' do
   it_behaves_like 'an idempotent resource' do
     let(:manifest) do
       <<~PUPPET
-        # Work around module bugs: the packages are not ordered after the repository, the purge
-        # of /etc/bareos removes files the packages create, on Debian the ASCII-armored
-        # Release.key is saved as a .gpg keyring (which apt rejects), and the default python
-        # plugin package names are virtual packages there (which apt never reports as installed).
-        Package <| tag == 'bareos' |> -> File['/etc/bareos']
-        if $facts['os']['family'] == 'Debian' {
-          class { 'bareos':
-            client_package_name  => ['bareos-filedaemon', 'bareos-filedaemon-python3-plugin'],
-            storage_package_name => ['bareos-storage', 'bareos-storage-python3-plugin', 'bareos-tools'],
-          }
-          Class['apt::update'] -> Package <| tag == 'bareos' |>
-          Apt::Keyring <| title == 'bareos-keyring.gpg' |> { filename => 'bareos-keyring.asc' }
-          Apt::Source <| title == 'bareos' |> { keyring => '/etc/apt/keyrings/bareos-keyring.asc' }
-        } else {
-          include bareos
-        }
+        include bareos
 
         class { 'bareos::profile::client':
           name_client => 'bareos-fd',
